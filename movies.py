@@ -49,8 +49,11 @@ CREDIT = ("Images: NASA/SDO and the AIA and HMI science teams; NASA STEREO/SECCH
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    names = (["Arial Bold.ttf", "DejaVuSans-Bold.ttf"] if bold else ["Arial.ttf", "DejaVuSans.ttf"])
-    dirs = ["/System/Library/Fonts/Supplemental", "/Library/Fonts", "/usr/share/fonts/truetype/dejavu"]
+    # Arial, or Liberation Sans (the same widths) on Linux, else DejaVu.
+    names = (["Arial Bold.ttf", "LiberationSans-Bold.ttf", "DejaVuSans-Bold.ttf"] if bold
+             else ["Arial.ttf", "LiberationSans-Regular.ttf", "DejaVuSans.ttf"])
+    dirs = ["/System/Library/Fonts/Supplemental", "/Library/Fonts", "/usr/share/fonts/truetype/liberation",
+            "/usr/share/fonts/truetype/dejavu"]
     for d in dirs:
         for n in names:
             p = Path(d) / n
@@ -206,9 +209,19 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("site/movies"))
     ap.add_argument("--site", default="https://sr-dash.github.io/heliofield/")
     ap.add_argument("--imagery", default="https://sr-dash.github.io/heliofield-imagery/")
+    ap.add_argument("--if-new", action="store_true",
+                    help="do nothing when the published movies already end at the latest rotation")
     a = ap.parse_args()
     site, imagery = a.site.rstrip("/") + "/", a.imagery.rstrip("/") + "/"
     days = frame_days(imagery)
+    if a.if_new:
+        try:
+            last = get_json(imagery + "movies/movies.json")["rotations"][1]
+        except Exception:
+            last = None
+        if last is not None and last >= days[-1]["cr"]:
+            print(f"The movies already end at CR {last}; nothing to do.")
+            return
     render(days, a.work, site, imagery)
     ssn = sunspots()
     span = (int(year_of(days[0]["date"])), year_of(days[-1]["date"]) + 0.3)

@@ -1,0 +1,64 @@
+# Once a month, the movies again with the newest Carrington rotation: every
+# frame rendered afresh by HelioField's Observations page in a headless
+# Chrome, the movies encoded, and the `movies/` folder of the `site` branch
+# replaced. Months without a new rotation since the last movies end there.
+# Run by hand with "force" to remake them anyway.
+name: Movies
+
+on:
+  schedule:
+    - cron: "30 6 5 * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Remake the movies even with no new rotation"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+# The nightly images and the backfill replace the same branch.
+concurrency:
+  group: daily-images
+  cancel-in-progress: false
+
+jobs:
+  movies:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg fonts-liberation
+          pip install -r requirements.txt playwright
+          # The runner's Chrome is used when there is one.
+          google-chrome --version || python -m playwright install --with-deps chromium
+
+      - name: Movies
+        run: python movies.py --work work --out out/movies ${{ !inputs.force && '--if-new' || '' }}
+
+      - name: Publish
+        if: ${{ hashFiles('out/movies/movies.json') != '' }}
+        run: |
+          git config user.name "Soumyaranjan Dash"
+          git config user.email "sdash@nso.edu"
+          git fetch --depth 1 origin site:refs/remotes/origin/site
+          export GIT_INDEX_FILE="$RUNNER_TEMP/site-index"
+          git read-tree origin/site
+          git rm -r -q --cached --ignore-unmatch movies
+          git --work-tree=out add movies
+          tree=$(git write-tree)
+          commit=$(echo "Movies through CR $(python -c 'import json; print(json.load(open("out/movies/movies.json"))["rotations"][1])')" | git commit-tree "$tree")
+          git push --force origin "${commit}:refs/heads/site"

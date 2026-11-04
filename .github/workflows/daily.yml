@@ -5,9 +5,13 @@
 # rotation before that) instead of growing with history.
 name: Daily images
 
+# A second run in the afternoon retries the days that lack panels because an
+# archive did not answer (listed as `incomplete` in the day's index), and
+# otherwise has nothing to do.
 on:
   schedule:
     - cron: "15 4 * * *"
+    - cron: "15 16 * * *"
   workflow_dispatch:
     inputs:
       date:

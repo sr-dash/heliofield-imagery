@@ -40,6 +40,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -99,26 +100,34 @@ def get(url: str, timeout: int = 90) -> bytes:
 
 
 _pages: dict[str, str | None] = {}
+_unreachable: set[str] = set()     # listings the server did not answer, as opposed to ones that do not exist
+_asked_unreachable = [0]           # how often a finder has met one, so build() can tell the two apart
 
 
 def page(url: str) -> str | None:
     """A directory listing, fetched once per run (the eight AIA channels share
-    each hour's folder), with one retry when the server is slow. None if
+    each hour's folder), tried three times when the server is slow. None if
     there is none: a missing hour or day is normal."""
     if url not in _pages:
         text = None
-        for attempt in (1, 2):
+        for attempt in (1, 2, 3):
             try:
                 text = get(url, timeout=45).decode("utf-8", "replace")
                 break
             except urllib.error.HTTPError as e:
                 if e.code != 404:
                     print(f"  {url}: {e}")
+                    _unreachable.add(url)
                 break
             except Exception as e:
-                if attempt == 2:
+                if attempt == 3:
                     print(f"  {url}: {e}")
+                    _unreachable.add(url)
+                else:
+                    time.sleep(10 * attempt)
         _pages[url] = text
+    if url in _unreachable:
+        _asked_unreachable[0] += 1
     return _pages[url]
 
 
@@ -524,14 +533,22 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
     dest.mkdir(parents=True, exist_ok=True)
     old = json.loads((dest / "index.json").read_text())["panels"] if (dest / "index.json").exists() else []
     panels = {p["id"]: p for p in old}
+    # Panels lost to a server that did not answer, rather than to having no
+    # frame: listed in the day's index, and tried again by the next runs.
+    incomplete = []
     print(f"{day}: map time {t:%Y-%m-%d %H:%M} UTC")
     with tempfile.TemporaryDirectory() as tmp:
         for pid, find in finders(t):
             if only and pid not in only:
                 continue
+            asked = _asked_unreachable[0]
             hit = find()
             if not hit:
-                print(f"  {pid}: no frame within {MAX_GAP_H} h")
+                if _asked_unreachable[0] > asked:
+                    print(f"  {pid}: the archive did not answer; to be tried again")
+                    incomplete.append(pid)
+                else:
+                    print(f"  {pid}: no frame within {MAX_GAP_H} h")
                 continue
             p = None
             for tt, url in hit if isinstance(hit, list) else [hit]:       # nearest first; the next if one fails
@@ -544,10 +561,14 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
                     break
                 except Exception as e:
                     print(f"  {pid}: {url.rsplit('/', 1)[1]}: {type(e).__name__}: {e}")
+                    if isinstance(e, (urllib.error.URLError, TimeoutError, OSError)) and pid not in incomplete:
+                        incomplete.append(pid)
             if p is None:
                 if pid in panels:
                     print(f"  {pid}: unchanged")
                 continue
+            if pid in incomplete:
+                incomplete.remove(pid)
             p["source"] = url
             (dest / f"{pid}.wow.webp").unlink(missing_ok=True)       # the older name of the enhanced image
             panels[pid] = p
@@ -555,7 +576,8 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
     order = list(PANELS)
     (dest / "index.json").write_text(json.dumps(dict(
         date=day, map_time=t.isoformat().replace("+00:00", "Z"), cr=meta.get("carrington_rotation"), credits=CREDITS,
-        panels=sorted(panels.values(), key=lambda p: order.index(p["id"]))), indent=1))
+        panels=sorted(panels.values(), key=lambda p: order.index(p["id"])),
+        incomplete=[q for q in incomplete if q not in panels]), indent=1))
     write_index()
 
 
@@ -615,12 +637,15 @@ def rotations(which: str, local: Path | None, gaps: bool = False):
 
 def recent(local: Path | None, n: int) -> list[str]:
     """HelioField's daily products of the last n days that have no images yet,
-    or whose map was rebuilt since (HelioField rebuilds the last two nights)."""
+    whose map was rebuilt since (HelioField rebuilds the last two nights), or
+    that lack panels because an archive did not answer."""
     idx = json.loads((local / "index.json").read_text()) if local else json.loads(get(f"{HELIOFIELD}/index.json"))
     out = []
     for d in idx["dates"][-n:]:
         f = DAYS / d / "index.json"
-        if not f.exists() or json.loads(f.read_text()).get("map_time", "")[:16] != product(d, local)["obstime"][:16]:
+        have = json.loads(f.read_text()) if f.exists() else {}
+        if (not have or have.get("map_time", "")[:16] != product(d, local)["obstime"][:16]
+                or have.get("incomplete")):
             out.append(d)
     return out
 

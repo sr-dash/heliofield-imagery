@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use these images or this pipeline, please cite it as below, together with the missions whose data it shows."
+title: "HelioField imagery: daily solar images with observer geometry for coronal-field overlays"
+type: software
+authors:
+  - family-names: Dash
+    given-names: Soumyaranjan
+    orcid: "https://orcid.org/0000-0003-0103-6569"
+    affiliation: "National Solar Observatory"
+version: 1.0.1
+date-released: 2026-11-03
+url: "https://sr-dash.github.io/heliofield/observations.html"
+repository-code: "https://github.com/sr-dash/heliofield-imagery"
+license: MIT
+abstract: >-
+  A nightly pipeline that, for each HelioField coronal-field product and for
+  one day per Carrington rotation since May 2010, takes the image nearest the
+  map time from SDO/AIA and HMI, SOHO/LASCO C2 and C3, STEREO-A/EUVI and Solar
+  Orbiter/EUI and PHI, turns it solar north up, and stores it with the
+  observer's Carrington position, distance and plate scale so the model's
+  field lines can be drawn from each spacecraft's viewpoint. Each image comes
+  in a standard and an enhanced rendering: the WOW filter for disk images, and
+  for LASCO the ratio to a minimum background (NRL's real-time method) and the
+  NRGF filter.
+keywords:
+  - heliophysics
+  - solar physics
+  - SDO
+  - SOHO
+  - LASCO
+  - STEREO
+  - Solar Orbiter
+  - coronal magnetic field
+  - space weather
+  - image processing
+references:
+  - type: software
+    title: "HelioField: the Sun's coronal magnetic field in 3D"
+    authors:
+      - family-names: Dash
+        given-names: Soumyaranjan
+    doi: 10.5281/zenodo.23487231

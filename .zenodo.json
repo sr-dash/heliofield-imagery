@@ -1,0 +1,48 @@
+{
+  "title": "HelioField imagery: daily solar images with observer geometry for coronal-field overlays",
+  "upload_type": "software",
+  "description": "<p>A nightly pipeline for <a href=\"https://sr-dash.github.io/heliofield/observations.html\">HelioField's Observations page</a>. For each HelioField coronal-field product, and for one day per Carrington rotation since May 2010, it takes the image nearest the map time from SDO/AIA (94, 131, 171, 193, 211, 304, 335 and 1600 Å) and HMI, SOHO/LASCO C2 and C3, STEREO-A/EUVI and Solar Orbiter/EUI (174 and 304 Å) and PHI. Each image is turned solar north up and stored with the observer's Carrington position and distance, the plate scale and the Sun's centre, so the model's field lines can be drawn from that spacecraft's viewpoint.</p><p>Each image has a standard and an enhanced rendering: the instrument's SunPy scaling and the WOW filter (Wavelets Optimized Whitening) for disk images; for LASCO, the ratio to a minimum background built from daily median images (NRL's method for the real-time images) and the normalising radial gradient filter (NRGF). Images are 768-pixel WebP files. The last 60 days are kept, and one day per Carrington rotation before that, on a single-commit branch served by GitHub Pages, so the repository does not grow with history.</p><p>Data: NASA/SDO and the AIA and HMI teams (JSOC); SOHO/LASCO (ESA, NASA, NRL); STEREO/SECCHI beacon (NASA); Solar Orbiter/EUI and PHI (ESA, NASA; EUI consortium at the Royal Observatory of Belgium; ESA's Solar Orbiter Archive).</p>",
+  "creators": [
+    {
+      "name": "Dash, Soumyaranjan",
+      "affiliation": "National Solar Observatory",
+      "orcid": "0000-0003-0103-6569"
+    }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "heliophysics",
+    "solar physics",
+    "SDO",
+    "AIA",
+    "HMI",
+    "SOHO",
+    "LASCO",
+    "STEREO",
+    "Solar Orbiter",
+    "EUI",
+    "PHI",
+    "coronal magnetic field",
+    "space weather",
+    "WOW filter",
+    "NRGF"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.5281/zenodo.23487231",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://sr-dash.github.io/heliofield/observations.html",
+      "relation": "isDocumentedBy",
+      "resource_type": "other"
+    },
+    {
+      "identifier": "https://sr-dash.github.io/heliofield-imagery/",
+      "relation": "isSupplementedBy",
+      "resource_type": "dataset"
+    }
+  ],
+  "version": "1.0.1"
+}

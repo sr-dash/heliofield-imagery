@@ -42,6 +42,10 @@ python devserve.py                     # serve on http://localhost:8812 with the
 
 `build.py` reads each day's map time from HelioField's published `meta.json` (or a local checkout with `--heliofield ../heliofield/data`).
 
+## Citing
+
+If you use these images or the pipeline, please cite this repository ([CITATION.cff](CITATION.cff)) and [HelioField](https://doi.org/10.5281/zenodo.23487231), and credit the missions below.
+
 ## Credits
 
 - SDO: courtesy of NASA/SDO and the AIA and HMI science teams (JSOC).

@@ -68,4 +68,4 @@ jobs:
             echo "No change."; exit 0
           fi
           commit=$(echo "Images through $(date -u +%F)" | git commit-tree "$tree")
-          git push --force origin "$commit:refs/heads/site"
+          git push --force origin "${commit}:refs/heads/site"

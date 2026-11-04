@@ -1,0 +1,71 @@
+# Each night, after HelioField's daily product: the images for every new (or
+# rebuilt) day, published on the `site` branch, which GitHub Pages serves.
+# The branch is one commit, replaced each night, so the repository stays the
+# size of the images on show (the last 60 days and one day per Carrington
+# rotation before that) instead of growing with history.
+name: Daily images
+
+on:
+  schedule:
+    - cron: "15 4 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "One day to (re)build, YYYY-MM-DD; empty for the recent days"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-images
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The images on show now
+        run: |
+          mkdir -p site
+          if git fetch --depth 1 origin site:refs/remotes/origin/site; then git archive origin/site | tar -x -C site; fi
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # Daily LASCO medians for the backgrounds: rebuilt from the quick-look
+      # archive (9 days) if the cache is ever lost.
+      - uses: actions/cache@v5
+        with:
+          path: bg
+          key: lasco-bg-${{ github.run_id }}
+          restore-keys: lasco-bg-
+
+      - name: Build
+        run: |
+          if [ -n "${{ inputs.date }}" ]; then
+            python build.py --out site --date "${{ inputs.date }}" --force --prune
+          else
+            python build.py --out site --recent 7 --prune
+          fi
+          touch site/.nojekyll
+
+      - name: Publish
+        run: |
+          git config user.name "Soumyaranjan Dash"
+          git config user.email "sdash@nso.edu"
+          export GIT_INDEX_FILE="$RUNNER_TEMP/site-index"
+          git --work-tree=site add -A
+          tree=$(git write-tree)
+          if git rev-parse -q --verify origin/site >/dev/null && [ "$(git rev-parse origin/site^{tree})" = "$tree" ]; then
+            echo "No change."; exit 0
+          fi
+          commit=$(echo "Images through $(date -u +%F)" | git commit-tree "$tree")
+          git push --force origin "$commit:refs/heads/site"

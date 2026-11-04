@@ -44,6 +44,22 @@ python devserve.py                     # serve on http://localhost:8812 with the
 
 `build.py` reads each day's map time from HelioField's published `meta.json` (or a local checkout with `--heliofield ../heliofield/data`).
 
+## Movies
+
+[sr-dash.github.io/heliofield-imagery/movies/](https://sr-dash.github.io/heliofield-imagery/movies/) has movies of the Sun since May 2010, one frame per Carrington rotation (the stored day nearest the rotation's middle), at 6 frames a second. They are free to use, for outreach and teaching too, with the credit given there.
+
+- One movie per panel, 768 × 816: AIA 94, 131, 171, 193, 211, 304, 335 and 1600 Å, the HMI magnetogram and STEREO-A EUVI 195 Å (other beacon channels are left out, so its colour holds).
+- Every panel on one 1920 × 1080 canvas, with the monthly sunspot number (WDC-SILSO) along the bottom and the frame's place in the cycle marked.
+- Each with and without HelioField's PFSS field lines from HMI rotation maps, projected from each spacecraft's position. The lines are drawn by the Observations page itself (`observations.html?frames=1`) in a headless Chrome, so they match the page.
+- All in the standard rendering, H.264 MP4, with a poster image each and `movies.json` listing them.
+
+```
+pip install playwright                 # uses an installed Chrome, else `playwright install chromium`
+python movies.py --work work --out site/movies
+```
+
+`work/` keeps the rendered frames, so a later run only renders the new rotations.
+
 ## Citing
 
 If you use these images or the pipeline, please cite it, together with [HelioField](https://doi.org/10.5281/zenodo.23487231), and credit the missions below:

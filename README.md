@@ -28,7 +28,7 @@ https://sr-dash.github.io/heliofield-imagery/days/<date>/<id>.std.webp, <id>.enh
 
 Each panel lists `observer` (Carrington `lon`, `lat` in degrees and distance `r_rs` in solar radii), `scale_arcsec` (per pixel), `center` (Sun centre in pixels from the top-left), `fov_rs` for coronagraphs, `t_obs`, `methods`, `source` and `credit`.
 
-Images are 768 pixels on the long side, WebP at quality 75: about 1.7 MB a day for every panel in both renderings. Every day of the last 60 is kept, and before that the first day of each Carrington rotation, as HelioField keeps its daily products. The `site` branch is a single commit replaced each night, so the repository stays the size of the images on show.
+Images are 768 pixels on the long side, WebP at quality 75: about 1.5 MB a day for every panel in both renderings. Every day of the last 60 is kept, and before that the first day of each Carrington rotation, as HelioField keeps its daily products. Rotations before the daily products began, back to May 2010, have one day each, the middle day of the rotation at noon, filled by the `Backfill rotations` workflow; their LASCO backgrounds use 5 days of 2-frame medians, and they lack panels a mission did not yet provide (Solar Orbiter from 2021). All of it comes to about 350 MB. The `site` branch is a single commit replaced each night, so the repository stays the size of the images on show.
 
 ## Running it
 
@@ -36,6 +36,7 @@ Images are 768 pixels on the long side, WebP at quality 75: about 1.7 MB a day f
 pip install -r requirements.txt
 python build.py --recent 7 --prune     # what the nightly workflow runs (into site/ there)
 python build.py --date 2026-11-02      # one day
+python build.py --rotations 2014       # one day per Carrington rotation of 2014 without images yet
 python devserve.py                     # serve on http://localhost:8812 with the header the page needs
 ```
 

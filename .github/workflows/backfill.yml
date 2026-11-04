@@ -1,0 +1,105 @@
+# One day per Carrington rotation before HelioField's daily products began
+# (May 2010 on), the middle day of each rotation at noon. Run by hand: one
+# job per year in parallel, then one job that adds them all to the `site`
+# branch, as the nightly run publishes. Rotations already on the branch are
+# skipped, so it can be run again to fill gaps.
+name: Backfill rotations
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: "Years to fill, as a JSON list"
+        required: false
+        default: '["2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020","2021","2022","2023","2024","2025","2026"]'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        year: ${{ fromJSON(inputs.years) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The images on show now
+        run: |
+          mkdir -p site
+          if git fetch --depth 1 origin site:refs/remotes/origin/site; then git archive origin/site | tar -x -C site; fi
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Build the year's rotations
+        run: python build.py --out site --rotations ${{ matrix.year }}
+
+      - name: Keep the new days only
+        run: |
+          mkdir -p part
+          for d in site/days/*/; do
+            n=$(basename "$d")
+            git cat-file -e "origin/site:days/$n/index.json" 2>/dev/null || mv "$d" part/
+          done
+          ls part
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: days-${{ matrix.year }}
+          path: part
+          if-no-files-found: ignore
+          retention-days: 3
+
+  publish:
+    needs: build
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    concurrency:
+      group: daily-images
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The images on show now
+        run: |
+          mkdir -p site
+          if git fetch --depth 1 origin site:refs/remotes/origin/site; then git archive origin/site | tar -x -C site; fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: days-*
+          path: site/days
+          merge-multiple: true
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Index
+        run: |
+          pip install numpy==2.2.6
+          python build.py --out site --reindex
+          touch site/.nojekyll
+          du -sh site; ls site/days | wc -l
+
+      - name: Publish
+        run: |
+          git config user.name "Soumyaranjan Dash"
+          git config user.email "sdash@nso.edu"
+          export GIT_INDEX_FILE="$RUNNER_TEMP/site-index"
+          git --work-tree=site add -A
+          tree=$(git write-tree)
+          if git rev-parse -q --verify origin/site >/dev/null && [ "$(git rev-parse origin/site^{tree})" = "$tree" ]; then
+            echo "No change."; exit 0
+          fi
+          commit=$(echo "Images through $(date -u +%F), with one day per Carrington rotation since 2010" | git commit-tree "$tree")
+          git push --force origin "${commit}:refs/heads/site"

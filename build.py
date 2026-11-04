@@ -60,6 +60,8 @@ KEEP_DAYS = 60              # every day this recent is kept; older ones, one per
 MAX_GAP_H = 18              # a frame further than this from the map time is not used
 AIA = "https://jsoc1.stanford.edu/data/aia/synoptic"
 LASCO = "https://umbra.nascom.nasa.gov/pub/lasco/lastimage/level_05"
+LASCO_ARCHIVE = "https://umbra.nascom.nasa.gov/pub/lasco_level05"     # older days
+EUI_ARCHIVE = "https://data.observatory.be/science/solo/eui/L2"         # older days, by date
 BEACON = "https://stereo-ssc.nascom.nasa.gov/data/beacon/ahead/secchi/img"
 EUI = "https://data.observatory.be/science/solo/eui/lastWeekFSI"
 HMI = "https://jsoc1.stanford.edu/data/hmi/fits"
@@ -88,7 +90,7 @@ B_SAT = 200.0               # magnetograms: grey from -B_SAT to +B_SAT gauss
 # Coronagraph fields of view [R_sun, plane of the sky], for masking.
 FOV = {"lasco_c2": (2.2, 6.0), "lasco_c3": (3.7, 30.0), "cor2_a": (2.5, 15.0)}
 # Wide-field imagers cropped to this half-width [R_sun], so the Sun fills the panel.
-CROP = {"eui174": 1.7, "eui304": 1.7}
+CROP = {"eui174": 1.7, "eui304": 1.7, "phi": 1.25}
 
 
 def get(url: str, timeout: int = 90) -> bytes:
@@ -135,13 +137,23 @@ def find_aia(wave: int, t: datetime):
 LASCO_SEQ = {"c2": ("Orange", "Clear"), "c3": ("Clear", "Clear")}
 BG = ROOT / "bg"            # daily medians for the backgrounds (a cache, not published)
 BG_DAYS = 27                # the background is the minimum over this many days of daily medians
+BG_FRAMES = 8               # frames per daily median
+# For days filled in later (one per Carrington rotation), a lighter background:
+# 5 days of 2-frame medians, about 40 MB per rotation instead of 400.
+BACKFILL_BG = (5, 2)
+backfill = False
 
 
 def lasco_frames(cam: str, d: date):
-    base = f"{LASCO}/{d:%y%m%d}/{cam}/"
-    try:
-        text = get(base + "img_hdr.txt").decode()
-    except Exception:
+    text = None
+    for root in (LASCO, LASCO_ARCHIVE):              # the quick-look days, then the archive
+        base = f"{root}/{d:%y%m%d}/{cam}/"
+        try:
+            text = get(base + "img_hdr.txt").decode()
+            break
+        except Exception:
+            continue
+    if text is None:
         return []
     out = []
     for line in text.splitlines():
@@ -169,13 +181,13 @@ def lasco_counts(path) -> np.ndarray:
     return d
 
 
-def daily_median(cam: str, d: date, n: int = 8):
+def daily_median(cam: str, d: date, n: int = BG_FRAMES):
     """The median of up to n frames spread over the day, cached in bg/."""
     path = BG / cam / f"{d:%Y%m%d}.npz"
     if path.exists():
         return np.load(path)["m"].astype(np.float32)
     frames = lasco_frames(cam, d)
-    if len(frames) < 3:
+    if len(frames) < min(3, n):
         return None
     pick = [frames[int(k)] for k in np.linspace(0, len(frames) - 1, min(n, len(frames)))]
     stack = []
@@ -186,7 +198,7 @@ def daily_median(cam: str, d: date, n: int = 8):
                 f.write_bytes(get(url, 300)); stack.append(lasco_counts(f))
             except Exception as e:
                 print(f"  {url}: {e}")
-    if len(stack) < 3:
+    if len(stack) < min(3, n):
         return None
     m = np.nanmedian(np.stack(stack), axis=0)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -198,11 +210,14 @@ def background(cam: str, d: date):
     """NRL's background: for each pixel, the minimum over about four weeks of
     daily median images. Days the quick-look archive no longer holds come from
     the cache; the result needs at least three days."""
-    for old in (BG / cam).glob("*.npz") if (BG / cam).exists() else []:     # medians the window no longer needs
-        if old.stem < f"{d - timedelta(days=BG_DAYS + 3):%Y%m%d}":
-            old.unlink()
-    meds = [m for k in range(BG_DAYS) if (m := daily_median(cam, d - timedelta(days=k))) is not None]
-    if len(meds) < 3:
+    days, frames = BACKFILL_BG if backfill else (BG_DAYS, BG_FRAMES)
+    if not backfill:
+        for old in (BG / cam).glob("*.npz") if (BG / cam).exists() else []:     # medians the window no longer needs
+            if old.stem < f"{d - timedelta(days=BG_DAYS + 3):%Y%m%d}":
+                old.unlink()
+    span = range(-(days // 2), days - days // 2) if backfill else range(days)      # backfill: centred on the day
+    meds = [m for k in span if (m := daily_median(cam, d - timedelta(days=k), frames)) is not None]
+    if len(meds) < (2 if backfill else 3):
         return None, 0
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -225,6 +240,15 @@ _eui_cache: list[str] | None = None
 
 def find_eui(wave: int, t: datetime):
     global _eui_cache
+    if t < datetime.now(timezone.utc) - timedelta(days=6):
+        # Older days: the level-2 archive by date (full-disk images only).
+        out = []
+        for dd in (-1, 0, 1):
+            d = t + timedelta(days=dd)
+            base = f"{EUI_ARCHIVE}/{d:%Y/%m/%d}/"
+            for name, ts in listing(base, rf"(solo_L2_eui-fsi{wave}-image_(\d{{8}}T\d{{6}})\d*_V\d\d\.fits)"):
+                out.append((datetime.strptime(ts, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc), base + name))
+        return nearest(out, t)
     if _eui_cache is None:
         _eui_cache = listing(EUI + "/", r"solo_L2_eui-fsi\d+-image_\d{8}T\d{9}_V\d\d\.fits")
     out = []
@@ -246,9 +270,16 @@ def find_hmi(t: datetime):
 
 
 def find_phi(t: datetime):
-    """PHI/FDT line-of-sight magnetograms in SOAR's low-latency archive (LL02, FITS)."""
-    q = ("SELECT TOP 40 data_item_id, begin_time FROM v_ll_data_item WHERE instrument='PHI' "
-         "AND descriptor='phi-fdt-blos' AND level='LL02' ORDER BY begin_time DESC")
+    """PHI/FDT line-of-sight magnetograms in SOAR: the low-latency archive
+    (LL02) for recent days, the science archive (L2) for older ones."""
+    old = t < datetime.now(timezone.utc) - timedelta(days=20)
+    if old:
+        a, b = (t - timedelta(hours=GAP_H["phi"])).strftime("%Y-%m-%dT%H:%M:%S"), (t + timedelta(hours=GAP_H["phi"])).strftime("%Y-%m-%dT%H:%M:%S")
+        q = ("SELECT TOP 40 data_item_id, begin_time FROM v_sc_data_item WHERE instrument='PHI' "
+             f"AND descriptor='phi-fdt-blos' AND level='L2' AND begin_time > '{a}' AND begin_time < '{b}' ORDER BY begin_time")
+    else:
+        q = ("SELECT TOP 40 data_item_id, begin_time FROM v_ll_data_item WHERE instrument='PHI' "
+             "AND descriptor='phi-fdt-blos' AND level='LL02' ORDER BY begin_time DESC")
     try:
         rows = get(f"{SOAR}/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=csv&QUERY={urllib.parse.quote(q)}", 120).decode().splitlines()[1:]
     except Exception as e:
@@ -258,7 +289,7 @@ def find_phi(t: datetime):
     for r in rows:
         did, bt = r.split(",")[:2]
         out.append((datetime.fromisoformat(bt[:19]).replace(tzinfo=timezone.utc),
-                    f"{SOAR}/data?retrieval_type=LAST_PRODUCT&data_item_id={did}&product_type=LOW_LATENCY"))
+                    f"{SOAR}/data?retrieval_type=LAST_PRODUCT&data_item_id={did}&product_type={'SCIENCE' if old else 'LOW_LATENCY'}"))
     return nearest(out, t, GAP_H["phi"])
 
 
@@ -443,9 +474,12 @@ def map_time(day: str, local: Path | None) -> datetime:
     return datetime.fromisoformat(product(day, local)["obstime"].replace("Z", "+00:00"))
 
 
-def build(day: str, local: Path | None, only: list[str] | None = None, force: bool = False):
-    meta = product(day, local)
-    t = datetime.fromisoformat(meta["obstime"].replace("Z", "+00:00"))
+def build(day: str, local: Path | None, only: list[str] | None = None, force: bool = False,
+          when: datetime | None = None, cr: int | None = None):
+    """One day: at a daily product's map time, or (when) at noon of a day
+    chosen for a Carrington rotation that has no daily product."""
+    meta = product(day, local) if when is None else {"carrington_rotation": cr}
+    t = when or datetime.fromisoformat(meta["obstime"].replace("Z", "+00:00"))
     dest = DAYS / day
     dest.mkdir(parents=True, exist_ok=True)
     old = json.loads((dest / "index.json").read_text())["panels"] if (dest / "index.json").exists() else []
@@ -514,6 +548,24 @@ def prune(keep_days: int = KEEP_DAYS):
     write_index()
 
 
+def rotations(which: str, local: Path | None):
+    """One day per Carrington rotation of HelioField's HMI archive (2010 on),
+    the middle day of the rotation at noon, for the rotations that have no
+    day yet: before HelioField's daily products began. which: a year or 'all'."""
+    hist = json.loads((local / "history" / "index.json").read_text()) if local else json.loads(get(f"{HELIOFIELD}/history/index.json"))
+    first_daily = (json.loads((local / "index.json").read_text()) if local else json.loads(get(f"{HELIOFIELD}/index.json")))["dates"][0]
+    have = {json.loads((d / "index.json").read_text()).get("cr") for d in DAYS.iterdir() if (d / "index.json").exists()} if DAYS.exists() else set()
+    out = []
+    for r in hist["rotations"]:
+        a, b = (datetime.fromisoformat(r[k].replace("Z", "+00:00")) for k in ("start", "stop"))
+        mid = (a + (b - a) / 2).replace(hour=12, minute=0, second=0, microsecond=0)
+        day = mid.date().isoformat()
+        if r["cr"] in have or day >= first_daily or (which != "all" and day[:4] != which):
+            continue
+        out.append((day, mid, r["cr"]))
+    return out
+
+
 def recent(local: Path | None, n: int) -> list[str]:
     """HelioField's daily products of the last n days that have no images yet,
     or whose map was rebuilt since (HelioField rebuilds the last two nights)."""
@@ -536,10 +588,24 @@ def main():
     ap.add_argument("--only", nargs="+", help="panel ids to (re)build")
     ap.add_argument("--prune", action="store_true", help=f"keep the last {KEEP_DAYS} days, then one per Carrington rotation")
     ap.add_argument("--force", action="store_true", help="re-render panels whose source is unchanged")
+    ap.add_argument("--rotations", help="one day per Carrington rotation before the daily products: a year, or 'all'")
+    ap.add_argument("--reindex", action="store_true", help="only rewrite index.json from the days present")
     a = ap.parse_args()
     warnings.filterwarnings("ignore")
     if a.out:
         OUT = a.out.resolve(); DAYS = OUT / "days"; DAYS.mkdir(parents=True, exist_ok=True)
+    global backfill
+    if a.reindex:
+        write_index(); return
+    if a.rotations:
+        backfill = True
+        todo = rotations(a.rotations, a.heliofield)
+        print(f"{len(todo)} rotations to fill")
+        for day, when, cr in todo:
+            build(day, a.heliofield, a.only, a.force, when, cr)
+        if a.prune:
+            prune()
+        return
     if a.recent:
         days = recent(a.heliofield, a.recent)
     elif a.date:

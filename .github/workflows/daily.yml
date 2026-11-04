@@ -17,6 +17,10 @@ on:
 permissions:
   contents: write
 
+# Print each line as it comes, so the live log shows progress.
+env:
+  PYTHONUNBUFFERED: "1"
+
 concurrency:
   group: daily-images
   cancel-in-progress: false

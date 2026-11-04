@@ -98,16 +98,33 @@ def get(url: str, timeout: int = 90) -> bytes:
         return r.read()
 
 
+_pages: dict[str, str | None] = {}
+
+
+def page(url: str) -> str | None:
+    """A directory listing, fetched once per run (the eight AIA channels share
+    each hour's folder), with one retry when the server is slow. None if
+    there is none: a missing hour or day is normal."""
+    if url not in _pages:
+        text = None
+        for attempt in (1, 2):
+            try:
+                text = get(url, timeout=45).decode("utf-8", "replace")
+                break
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    print(f"  {url}: {e}")
+                break
+            except Exception as e:
+                if attempt == 2:
+                    print(f"  {url}: {e}")
+        _pages[url] = text
+    return _pages[url]
+
+
 def listing(url: str, pattern: str) -> list[str]:
-    try:
-        return sorted(set(re.findall(pattern, get(url).decode("utf-8", "replace"))))
-    except urllib.error.HTTPError as e:
-        if e.code != 404:                       # a missing hour or day is normal
-            print(f"  {url}: {e}")
-        return []
-    except Exception as e:
-        print(f"  {url}: {e}")
-        return []
+    text = page(url)
+    return sorted(set(re.findall(pattern, text))) if text else []
 
 
 def nearest(cands: list[tuple[datetime, str]], t: datetime, gap_h: float = MAX_GAP_H):

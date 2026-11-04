@@ -129,6 +129,26 @@ def find_aia(wave: int, t: datetime):
                 out.append((tt, d + f"AIA{ds}_{ts}_{wave:04d}.fits"))
             if out and sub == "":
                 break          # science files exist for this hour: prefer them
+    if out:
+        return nearest(out, t)
+    # A gap around the map time (AIA has some): the nearest hours that exist
+    # within MAX_GAP_H, from the days' listings of hour folders.
+    hours = []
+    for dd in (-1, 0, 1):
+        day = t + timedelta(days=dd)
+        for sub in ("", "nrt/"):
+            for hh in listing(f"{AIA}/{sub}{day:%Y/%m/%d}/", r'href="H(\d{2})00/"'):
+                h = day.replace(hour=int(hh), minute=30, second=0, microsecond=0)
+                if abs((h - t).total_seconds()) <= MAX_GAP_H * 3600:
+                    hours.append((abs((h - t).total_seconds()), h, sub))
+    for _, h, sub in sorted(hours)[:4]:
+        rx = r"AIA(\d{8})_(\d{4})_%04d\.fits" if sub == "" else r"AIA(\d{8})_(\d{6})_%04d\.fits"
+        d = f"{AIA}/{sub}{h:%Y/%m/%d}/H{h:%H}00/"
+        for ds, ts in listing(d, rx % wave):
+            tt = datetime.strptime(ds + ts.ljust(6, "0"), "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+            out.append((tt, d + f"AIA{ds}_{ts}_{wave:04d}.fits"))
+        if out:
+            break
     return nearest(out, t)
 
 
@@ -551,13 +571,20 @@ def prune(keep_days: int = KEEP_DAYS):
     write_index()
 
 
-def rotations(which: str, local: Path | None):
+def rotations(which: str, local: Path | None, gaps: bool = False):
     """One day per Carrington rotation of HelioField's HMI archive (2010 on),
     the middle day of the rotation at noon, for the rotations that have no
     day yet: before HelioField's daily products began. which: a year or 'all'."""
     hist = json.loads((local / "history" / "index.json").read_text()) if local else json.loads(get(f"{HELIOFIELD}/history/index.json"))
     first_daily = (json.loads((local / "index.json").read_text()) if local else json.loads(get(f"{HELIOFIELD}/index.json")))["dates"][0]
-    have = {json.loads((d / "index.json").read_text()).get("cr") for d in DAYS.iterdir() if (d / "index.json").exists()} if DAYS.exists() else set()
+    # Rotations that already have a day; with gaps, those whose day lacks an
+    # AIA panel (all eight exist from mid-May 2010) are tried again.
+    have = set()
+    for d in (DAYS.iterdir() if DAYS.exists() else []):
+        if (d / "index.json").exists():
+            x = json.loads((d / "index.json").read_text())
+            if not (gaps and d.name >= "2010-05-20" and sum(p["id"].startswith("aia") for p in x["panels"]) < 8):
+                have.add(x.get("cr"))
     out = []
     for r in hist["rotations"]:
         a, b = (datetime.fromisoformat(r[k].replace("Z", "+00:00")) for k in ("start", "stop"))
@@ -593,6 +620,7 @@ def main():
     ap.add_argument("--force", action="store_true", help="re-render panels whose source is unchanged")
     ap.add_argument("--rotations", help="one day per Carrington rotation before the daily products: a year, or 'all'")
     ap.add_argument("--reindex", action="store_true", help="only rewrite index.json from the days present")
+    ap.add_argument("--gaps", action="store_true", help="with --rotations: also retry rotation days missing AIA panels")
     a = ap.parse_args()
     warnings.filterwarnings("ignore")
     if a.out:
@@ -602,7 +630,7 @@ def main():
         write_index(); return
     if a.rotations:
         backfill = True
-        todo = rotations(a.rotations, a.heliofield)
+        todo = rotations(a.rotations, a.heliofield, a.gaps)
         print(f"{len(todo)} rotations to fill")
         for day, when, cr in todo:
             build(day, a.heliofield, a.only, a.force, when, cr)

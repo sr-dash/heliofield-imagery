@@ -12,6 +12,10 @@ on:
         description: "Years to fill, as a JSON list"
         required: false
         default: '["2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020","2021","2022","2023","2024","2025","2026"]'
+      gaps:
+        description: "Also retry days that lack AIA panels"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -40,14 +44,14 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Build the year's rotations
-        run: python build.py --out site --rotations ${{ matrix.year }}
+        run: python build.py --out site --rotations ${{ matrix.year }} ${{ inputs.gaps && '--gaps' || '' }}
 
-      - name: Keep the new days only
+      - name: Keep the new and changed days only
         run: |
           mkdir -p part
           for d in site/days/*/; do
             n=$(basename "$d")
-            git cat-file -e "origin/site:days/$n/index.json" 2>/dev/null || mv "$d" part/
+            git show "origin/site:days/$n/index.json" 2>/dev/null | cmp -s - "$d/index.json" || mv "$d" part/
           done
           ls part
 

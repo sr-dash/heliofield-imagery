@@ -487,8 +487,13 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
 
 def write_index():
     days = sorted(p.name for p in DAYS.iterdir() if (p / "index.json").exists()) if DAYS.exists() else []
-    (OUT / "index.json").write_text(json.dumps(dict(dates=days, updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                                                     credits=CREDITS), indent=1))
+    path = OUT / "index.json"
+    # Rewritten only when the list of days changes, so a night with nothing
+    # new publishes nothing.
+    if path.exists() and json.loads(path.read_text()).get("dates") == days:
+        return
+    path.write_text(json.dumps(dict(dates=days, updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                    credits=CREDITS), indent=1))
 
 
 def prune(keep_days: int = KEEP_DAYS):

@@ -1,5 +1,7 @@
 # HelioField imagery
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23935774.svg)](https://doi.org/10.5281/zenodo.23935774)
+
 Solar images for [HelioField](https://sr-dash.github.io/heliofield/)'s [Observations page](https://sr-dash.github.io/heliofield/observations.html), one set per daily coronal-field product. For each day, the frame nearest the map time from each instrument is turned solar north up and written in a standard and an enhanced rendering, with the observer's position and plate scale so the page can draw the model's field lines from that spacecraft's viewpoint.
 
 | Panel | Source | Standard | Enhanced |
@@ -44,7 +46,11 @@ python devserve.py                     # serve on http://localhost:8812 with the
 
 ## Citing
 
-If you use these images or the pipeline, please cite this repository ([CITATION.cff](CITATION.cff)) and [HelioField](https://doi.org/10.5281/zenodo.23487231), and credit the missions below.
+If you use these images or the pipeline, please cite it, together with [HelioField](https://doi.org/10.5281/zenodo.23487231), and credit the missions below:
+
+> Dash, S. (2026). *HelioField imagery: daily solar images with observer geometry for coronal-field overlays* (Version 1.0.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23935774
+
+That DOI always resolves to the latest release; [10.5281/zenodo.23935775](https://doi.org/10.5281/zenodo.23935775) is version 1.0.1. GitHub's **Cite this repository** button reads [CITATION.cff](CITATION.cff).
 
 ## Credits
 

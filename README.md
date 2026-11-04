@@ -58,7 +58,7 @@ pip install playwright                 # uses an installed Chrome, else `playwri
 python movies.py --work work --out site/movies
 ```
 
-`work/` keeps the rendered frames, so a later run only renders the new rotations. The `Movies` workflow remakes them on the 5th of each month when a new rotation has been added (`--if-new`), rendering every frame afresh, and replaces `movies/` on the `site` branch; run it by hand with "force" to remake them anyway.
+`data/SN_m_tot_V2.0.csv` is a copy of WDC-SILSO's monthly sunspot numbers, used when SILSO is out of reach. `work/` keeps the rendered frames, so a later run only renders the new rotations. The `Movies` workflow remakes them on the 5th of each month when a new rotation has been added (`--if-new`), rendering every frame afresh, and replaces `movies/` on the `site` branch; run it by hand with "force" to remake them anyway.
 
 ## Citing
 

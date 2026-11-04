@@ -28,6 +28,7 @@ import json
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +45,7 @@ W, H, TILE, TOP = 1920, 1080, 384, 120      # the combined canvas: 5 x 2 tiles u
 FPS = 6
 UA = {"User-Agent": "heliofield-imagery movies"}
 SILSO = "https://www.sidc.be/SILSO/DATA/SN_m_tot_V2.0.csv"
+SILSO_COPY = Path(__file__).parent / "data" / "SN_m_tot_V2.0.csv"
 CREDIT = ("Images: NASA/SDO and the AIA and HMI science teams; NASA STEREO/SECCHI.  "
           "Field: HelioField PFSS from HMI rotation maps.  Sunspot number: WDC-SILSO, Royal Observatory of Belgium.")
 
@@ -117,18 +119,33 @@ def render(days: list[dict], work: Path, site: str, imagery: str) -> None:
 
 
 def sunspots() -> list[tuple[float, float]]:
-    """Monthly mean sunspot number since 2009, or nothing if SILSO is out of reach."""
-    try:
-        req = urllib.request.Request(SILSO, headers=UA)
-        text = urllib.request.urlopen(req, timeout=60).read().decode()
-    except Exception as e:
-        print(f"no sunspot numbers: {e}")
-        return []
+    """Monthly mean sunspot number since 2009. SILSO's server is slow at times,
+    so three tries, then the copy kept in the repository (refreshed by every
+    run that reaches SILSO); without either, stop rather than make the
+    combined movies without their solar-cycle curve."""
+    text = None
+    for k in range(3):
+        try:
+            req = urllib.request.Request(SILSO, headers=UA)
+            text = urllib.request.urlopen(req, timeout=120).read().decode()
+            SILSO_COPY.parent.mkdir(exist_ok=True)
+            SILSO_COPY.write_text(text)
+            break
+        except Exception as e:
+            print(f"SILSO, try {k + 1}: {e}")
+            time.sleep(20)
+    if text is None and SILSO_COPY.exists():
+        print(f"Using the copy in {SILSO_COPY.name}")
+        text = SILSO_COPY.read_text()
+    if text is None:
+        raise SystemExit("No sunspot numbers: SILSO is out of reach and there is no copy.")
     out = []
     for line in text.splitlines():
         f = line.split(";")
         if len(f) > 3 and float(f[2]) >= 2009.9 and float(f[3]) >= 0:
             out.append((float(f[2]), float(f[3])))
+    if len(out) < 100:
+        raise SystemExit(f"Only {len(out)} months of sunspot numbers.")
     return out
 
 
@@ -222,8 +239,8 @@ def main() -> None:
         if last is not None and last >= days[-1]["cr"]:
             print(f"The movies already end at CR {last}; nothing to do.")
             return
+    ssn = sunspots()                       # first, so a failure costs nothing
     render(days, a.work, site, imagery)
-    ssn = sunspots()
     span = (int(year_of(days[0]["date"])), year_of(days[-1]["date"]) + 0.3)
     a.out.mkdir(parents=True, exist_ok=True)
     made = []

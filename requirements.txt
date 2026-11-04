@@ -3,5 +3,6 @@ scipy==1.16.2
 astropy==7.1.1
 sunpy[map]==7.0.3
 sunkit-image==0.7.0
+watroo==0.0.4          # the WOW filter in sunkit-image needs it
 matplotlib==3.10.3
 pillow==11.3.0

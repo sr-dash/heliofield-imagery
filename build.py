@@ -438,17 +438,20 @@ def process(pid: str, path: Path, dest: Path, day: date | None = None) -> dict:
     else:
         write_webp(standard(m.data, kind, rr, fov, stretch, pid, m), cmap, mask, dest / files["std"])
         methods["std"] = {"disk": "SunPy stretch", "coronagraph": "NRGF", "magnetogram": f"±{B_SAT:.0f} G"}[kind]
-    if kind == "coronagraph":                    # enhanced: NRGF for coronagraphs, WOW for disks
-        files["enh"] = f"{pid}.enh.webp"
-        v = nrgf(m, fov)
-        good = np.isfinite(v) & (rr >= fov[0]) & (rr <= fov[1])
-        lo, hi = np.nanpercentile(v[good], [1, 99.5])
-        write_webp(np.clip((v - lo) / (hi - lo), 0, 1), cmap, mask, dest / files["enh"])
-        methods["enh"] = "NRGF"
-    elif kind == "disk":
-        files["enh"] = f"{pid}.enh.webp"
-        write_webp(enhanced(m.data, kind, rr, fov, stretch, pid, m), cmap, mask, dest / files["enh"])
-        methods["enh"] = "WOW"
+    # Enhanced: NRGF for coronagraphs, WOW for disks. A failure here leaves the
+    # panel with its standard image rather than losing it.
+    try:
+        if kind == "coronagraph":
+            v = nrgf(m, fov)
+            good = np.isfinite(v) & (rr >= fov[0]) & (rr <= fov[1])
+            lo, hi = np.nanpercentile(v[good], [1, 99.5])
+            write_webp(np.clip((v - lo) / (hi - lo), 0, 1), cmap, mask, dest / f"{pid}.enh.webp")
+            files["enh"], methods["enh"] = f"{pid}.enh.webp", "NRGF"
+        elif kind == "disk":
+            write_webp(enhanced(m.data, kind, rr, fov, stretch, pid, m), cmap, mask, dest / f"{pid}.enh.webp")
+            files["enh"], methods["enh"] = f"{pid}.enh.webp", "WOW"
+    except Exception as e:
+        print(f"  {pid}: no enhanced image ({type(e).__name__}: {e})")
     h, w = m.data.shape
     return dict(id=pid, label=label, observatory=obs, instrument=inst, kind=kind, t_obs=m.date.isot[:19] + "Z",
                 wavelength=wavelength(m),

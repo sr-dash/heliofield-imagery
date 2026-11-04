@@ -152,7 +152,11 @@ def lasco_frames(cam: str, d: date):
 
 
 def find_lasco(cam: str, t: datetime):
-    return nearest([x for dd in (-1, 0, 1) for x in lasco_frames(cam, (t + timedelta(days=dd)).date())], t)
+    """The three frames nearest the map time, nearest first: quick-look frames
+    sometimes arrive with most of their blocks missing."""
+    cands = [x for dd in (-1, 0, 1) for x in lasco_frames(cam, (t + timedelta(days=dd)).date())]
+    cands = [c for c in cands if abs((c[0] - t).total_seconds()) <= MAX_GAP_H * 3600]
+    return sorted(cands, key=lambda c: abs((c[0] - t).total_seconds()))[:3] or None
 
 
 def lasco_counts(path) -> np.ndarray:
@@ -366,6 +370,8 @@ def process(pid: str, path: Path, dest: Path, day: date | None = None) -> dict:
     obs, inst, label, kind = PANELS[pid]
     m = sunpy.map.Map(path)
     ratio_days = 0
+    if pid.startswith("lasco_") and np.mean(m.data > 0) < 0.5:
+        raise ValueError("most of the frame is missing")
     if pid.startswith("lasco_") and day is not None:
         # The real-time method: the frame divided by its background, in the
         # detector frame where the two line up.
@@ -453,15 +459,20 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
             if not hit:
                 print(f"  {pid}: no frame within {MAX_GAP_H} h")
                 continue
-            tt, url = hit
-            if not force and pid in panels and panels[pid].get("source") == url:
-                print(f"  {pid}: unchanged"); continue
-            f = Path(tmp) / url.rsplit("/", 1)[1]
-            try:
-                f.write_bytes(get(url, timeout=300))
-                p = process(pid, f, dest, t.date())
-            except Exception as e:
-                print(f"  {pid}: {type(e).__name__}: {e}")
+            p = None
+            for tt, url in hit if isinstance(hit, list) else [hit]:       # nearest first; the next if one fails
+                if not force and pid in panels and panels[pid].get("source") == url:
+                    break
+                f = Path(tmp) / url.rsplit("/", 1)[1]
+                try:
+                    f.write_bytes(get(url, timeout=300))
+                    p = process(pid, f, dest, t.date())
+                    break
+                except Exception as e:
+                    print(f"  {pid}: {url.rsplit('/', 1)[1]}: {type(e).__name__}: {e}")
+            if p is None:
+                if pid in panels:
+                    print(f"  {pid}: unchanged")
                 continue
             p["source"] = url
             (dest / f"{pid}.wow.webp").unlink(missing_ok=True)       # the older name of the enhanced image

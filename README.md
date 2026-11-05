@@ -1,8 +1,14 @@
 # HelioField imagery
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23935774.svg)](https://doi.org/10.5281/zenodo.23935774)
+[![GitHub stars](https://img.shields.io/github/stars/sr-dash/heliofield-imagery?style=social)](https://github.com/sr-dash/heliofield-imagery/stargazers)
+[![Using it? Tell me](https://img.shields.io/badge/using%20it%3F-tell%20me-2ea44f)](https://github.com/sr-dash/heliofield-imagery/issues/new?template=i_use_this.yml)
+[![Show and tell](https://img.shields.io/badge/discussions-show%20and%20tell-8250df)](https://github.com/sr-dash/heliofield-imagery/discussions/categories/show-and-tell)
 
 Solar images for [HelioField](https://sr-dash.github.io/heliofield/)'s [Observations page](https://sr-dash.github.io/heliofield/observations.html), one set per daily coronal-field product. For each day, the frame nearest the map time from each instrument is turned solar north up and written in a standard and an enhanced rendering, with the observer's position and plate scale so the page can draw the model's field lines from that spacecraft's viewpoint.
+
+> [!TIP]
+> **Using HelioField imagery?** Please [star the repository](https://github.com/sr-dash/heliofield-imagery/stargazers) (the ☆ Star button at the top of this page). Clones and page views reach me without names, so a star is the only way I can tell who finds it useful, and it helps others find it too. Even better, [say what you use it for](https://github.com/sr-dash/heliofield-imagery/issues/new?template=i_use_this.yml) in a two-minute form, or post an example in [Show and tell](https://github.com/sr-dash/heliofield-imagery/discussions/categories/show-and-tell). If it helps your research, please cite it ([doi:10.5281/zenodo.23935774](https://doi.org/10.5281/zenodo.23935774)). I am not asking for money: there is no paid tier, and none of this changes what the tool does for you.
 
 | Panel | Source | Standard | Enhanced |
 |---|---|---|---|

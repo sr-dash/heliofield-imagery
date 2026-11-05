@@ -226,10 +226,14 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=Path("site/movies"))
     ap.add_argument("--site", default="https://sr-dash.github.io/heliofield/")
     ap.add_argument("--imagery", default="https://sr-dash.github.io/heliofield-imagery/")
+    ap.add_argument("--page-only", action="store_true",
+                    help="only rewrite the gallery page and sitemap from the movies.json in --out")
     ap.add_argument("--if-new", action="store_true",
                     help="do nothing when the published movies already end at the latest rotation")
     a = ap.parse_args()
     site, imagery = a.site.rstrip("/") + "/", a.imagery.rstrip("/") + "/"
+    if a.page_only:
+        return page(a.out)
     days = frame_days(imagery)
     if a.if_new:
         try:
@@ -279,8 +283,59 @@ def main() -> None:
         "made": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "fps": FPS,
         "first": days[0]["date"], "last": days[-1]["date"], "rotations": [days[0]["cr"], days[-1]["cr"]],
         "credit": CREDIT, "movies": made}, indent=1))
-    # The gallery page that plays them.
-    shutil.copy(Path(__file__).parent / "movies" / "index.html", a.out / "index.html")
+    page(a.out)
+
+
+PAGE = "https://sr-dash.github.io/heliofield-imagery/movies/"
+
+
+def page(out: Path) -> None:
+    """The gallery page, with the movies described for search engines
+    (schema.org VideoObject) and a video sitemap, from movies.json."""
+    m = json.loads((out / "movies.json").read_text())
+    made = m["made"].replace("Z", ":00Z") if len(m["made"]) == 17 else m["made"]
+    def desc(x):
+        what = "every panel on one canvas, with the sunspot number" if x["id"] == "all" else x["name"]
+        return (f"The Sun from {m['first'][:4]} to {m['last'][:4]}, one Carrington rotation per frame: {what}"
+                f"{', with HelioField PFSS field lines' if x['lines'] else ''}.")
+    def title(x):
+        return f"The Sun since 2010: {'all panels' if x['id'] == 'all' else x['name']}{' with field lines' if x['lines'] else ''}"
+    videos = [{
+        "@type": "VideoObject", "name": title(x), "description": desc(x),
+        "thumbnailUrl": PAGE + x["poster"], "contentUrl": PAGE + x["file"], "uploadDate": made,
+        "duration": f"PT{round(x['frames'] / m['fps'])}S", "width": x["width"], "height": x["height"],
+        "encodingFormat": "video/mp4", "isAccessibleForFree": True,
+        "creator": {"@type": "Person", "name": "Soumyaranjan Dash", "url": "https://sr-dash.github.io/"},
+        "creditText": m["credit"],
+    } for x in m["movies"]]
+    ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": "The Sun since 2010, one Carrington rotation per frame",
+          "url": PAGE, "isPartOf": {"@type": "WebSite", "url": "https://sr-dash.github.io/"},
+          "about": ["Sun", "Solar cycle", "Solar corona", "Solar magnetic field"],
+          "mainEntity": {"@type": "ItemList", "itemListElement": [
+              {"@type": "ListItem", "position": k + 1, "item": v} for k, v in enumerate(videos)]}}
+    html = (Path(__file__).parent / "movies" / "index.html").read_text()
+    html = html.replace("<!--LD-->", '<script type="application/ld+json">\n'
+                        + json.dumps(ld, ensure_ascii=False, indent=1).replace("</", "<\\/") + "\n</script>")
+    (out / "index.html").write_text(html)
+    esc = lambda t: t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    items = "".join(f"""  <video:video>
+   <video:thumbnail_loc>{v['thumbnailUrl']}</video:thumbnail_loc>
+   <video:title>{esc(v['name'])}</video:title>
+   <video:description>{esc(v['description'])}</video:description>
+   <video:content_loc>{v['contentUrl']}</video:content_loc>
+   <video:duration>{v['duration'][2:-1]}</video:duration>
+   <video:publication_date>{made}</video:publication_date>
+   <video:family_friendly>yes</video:family_friendly>
+  </video:video>
+""" for v in videos)
+    (out / "sitemap.xml").write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+ <url>
+  <loc>{PAGE}</loc>
+  <lastmod>{made[:10]}</lastmod>
+{items} </url>
+</urlset>
+""")
 
 
 if __name__ == "__main__":

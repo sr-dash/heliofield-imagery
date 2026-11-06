@@ -10,8 +10,8 @@ name: Daily images
 # otherwise has nothing to do.
 on:
   schedule:
-    - cron: "15 4 * * *"
-    - cron: "15 16 * * *"
+    - cron: "15 6 * * *"
+    - cron: "15 18 * * *"
   workflow_dispatch:
     inputs:
       date:

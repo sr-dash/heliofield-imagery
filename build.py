@@ -59,13 +59,15 @@ SIZE = 768                  # longest side of the written images [px]
 QUALITY = 75                # WebP quality: about 1.7 MB a day for every panel in both renderings
 KEEP_DAYS = 60              # every day this recent is kept; older ones, one per Carrington rotation
 MAX_GAP_H = 18              # a frame further than this from the map time is not used
-AIA = "https://jsoc1.stanford.edu/data/aia/synoptic"
+AIA_BAK = "https://jsoc1.stanford.edu/data/aia/synoptic/mostrecent"
+# https://jsoc1.stanford.edu/data/aia/synoptic/nrt
+AIA = "https://jsoc1.stanford.edu/data/aia/synoptic/nrt"
 LASCO = "https://umbra.nascom.nasa.gov/pub/lasco/lastimage/level_05"
 LASCO_ARCHIVE = "https://umbra.nascom.nasa.gov/pub/lasco_level05"     # older days
 EUI_ARCHIVE = "https://data.observatory.be/science/solo/eui/L2"         # older days, by date
 BEACON = "https://stereo-ssc.nascom.nasa.gov/data/beacon/ahead/secchi/img"
 EUI = "https://data.observatory.be/science/solo/eui/lastWeekFSI"
-HMI = "https://jsoc1.stanford.edu/data/hmi/fits"
+HMI = "https://jsoc.stanford.edu/data/hmi/fits"
 SOAR = "https://soar.esac.esa.int/soar-sl-tap"
 CREDITS = {
     "SDO": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
@@ -147,6 +149,7 @@ def find_aia(wave: int, t: datetime):
     out = []
     for dh in (-1, 0, 1):
         h = t + timedelta(hours=dh)
+        # https://jsoc1.stanford.edu/data/aia/synoptic/mostrecent/AIAsynoptic0094.fits
         for sub, rx in (("", r"AIA(\d{8})_(\d{4})_%04d\.fits"), ("nrt/", r"AIA(\d{8})_(\d{6})_%04d\.fits")):
             d = f"{AIA}/{sub}{h:%Y/%m/%d}/H{h:%H}00/"
             for m in listing(d, rx % wave):

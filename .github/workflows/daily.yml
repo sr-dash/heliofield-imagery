@@ -33,6 +33,8 @@ jobs:
   build:
     runs-on: ubuntu-26.04
     timeout-minutes: 60
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     steps:
       - name: Anything to do?
         id: check
@@ -92,6 +94,7 @@ jobs:
           touch site/.nojekyll
 
       - name: Publish
+        id: publish
         if: steps.check.outputs.go == 'true' || inputs.date != ''
         run: |
           git config user.name "Soumyaranjan Dash"
@@ -104,3 +107,29 @@ jobs:
           fi
           commit=$(echo "Images through $(date -u +%F)" | git commit-tree "$tree")
           git push --force origin "${commit}:refs/heads/site"
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      # The site as GitHub Pages serves it: deployed by the job below, with
+      # its own timeout, rather than by GitHub's branch deployment, whose
+      # fixed 10 minutes the few thousand files sometimes overran.
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.publish.outputs.published == 'true'
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.published == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 1800000

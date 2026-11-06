@@ -106,7 +106,8 @@ def render(days: list[dict], work: Path, site: str, imagery: str) -> None:
         page.wait_for_function("window.hfFrame !== undefined", timeout=120000)
         for k, d in enumerate(todo):
             for v in ("plain", "lines"):
-                r = page.evaluate("(a) => hfFrame(a[0], {lines: a[1], ids: a[2], at: 100})",
+                # The movies keep their own line opacity and width (55 %, 1x), whatever the page's defaults.
+                r = page.evaluate("(a) => hfFrame(a[0], {lines: a[1], ids: a[2], at: 100, alpha: 55, width: 1})",
                                   [d["date"], v == "lines", PANELS])
                 out = work / v / d["date"]
                 out.mkdir(parents=True, exist_ok=True)

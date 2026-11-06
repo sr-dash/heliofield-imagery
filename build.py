@@ -59,8 +59,13 @@ SIZE = 768                  # longest side of the written images [px]
 QUALITY = 75                # WebP quality: about 1.7 MB a day for every panel in both renderings
 KEEP_DAYS = 60              # every day this recent is kept; older ones, one per Carrington rotation
 MAX_GAP_H = 18              # a frame further than this from the map time is not used
-AIA_BAK = "https://jsoc1.stanford.edu/data/aia/synoptic/mostrecent/"
 AIA = "https://jsoc1.stanford.edu/data/aia/synoptic"
+# LMSAL's Sun Today keeps, for each day, that day's latest full-resolution
+# AIA (f0171.fits, ...) and HMI magnetogram (fblos.fits) under fixed names:
+# the fallback when JSOC does not answer, as it often does not for the
+# GitHub runners. The observation time is read from each file's header.
+LMSAL = "https://suntoday.lmsal.com/sdomedia/SunInTime"
+LMSAL_CREDIT = "Courtesy of NASA/SDO and the AIA and HMI science teams (via LMSAL Sun Today)"
 LASCO = "https://umbra.nascom.nasa.gov/pub/lasco/lastimage/level_05"
 LASCO_ARCHIVE = "https://umbra.nascom.nasa.gov/pub/lasco_level05"     # older days
 EUI_ARCHIVE = "https://data.observatory.be/science/solo/eui/L2"         # older days, by date
@@ -143,8 +148,60 @@ def nearest(cands: list[tuple[datetime, str]], t: datetime, gap_h: float = MAX_G
 
 
 # ------------------------------------------------------------------ finding frames
+_jsoc = []
+
+
+def jsoc_up() -> bool:
+    """Whether JSOC answers this run: asked once, briefly, so that a JSOC
+    that refuses the connection costs seconds rather than every listing's
+    timeouts."""
+    if not _jsoc:
+        try:
+            get(f"{AIA}/", timeout=25)
+            _jsoc.append(True)
+        except urllib.error.HTTPError:
+            _jsoc.append(True)                   # it answered, if not with a page
+        except Exception as e:
+            print(f"  JSOC did not answer ({e}); AIA and HMI from LMSAL Sun Today")
+            _jsoc.append(False)
+    return _jsoc[0]
+
+
+def header_time(url: str) -> datetime | None:
+    """DATE-OBS from the first 34 kB of a FITS file (the headers), fetched
+    with a range request; None if the file is not there."""
+    try:
+        req = urllib.request.Request(url, headers={**UA, "Range": "bytes=0-34559"})
+        with urllib.request.urlopen(req, timeout=45) as r:
+            text = r.read().decode("latin-1")
+    except Exception:
+        return None
+    m = re.search(r"DATE-OBS=\s*'([0-9T:.\-]+)", text)
+    return datetime.fromisoformat(m.group(1)[:19]).replace(tzinfo=timezone.utc) if m else None
+
+
+def find_lmsal(name: str, t: datetime):
+    """Sun Today's file of that name in the day folders around t: each holds
+    the day's latest frame (about 23:30 UTC for days past). The source is the
+    URL with the observation time after '#', so a new frame under the same
+    name is seen as new."""
+    out = []
+    for dd in (0, -1, 1):
+        d = t + timedelta(days=dd)
+        url = f"{LMSAL}/{d:%Y/%m/%d}/{name}"
+        tt = header_time(url)
+        if tt is not None:
+            out.append((tt, f"{url}#{tt:%Y-%m-%dT%H:%M:%S}"))
+    good = sorted((c for c in out if abs((c[0] - t).total_seconds()) <= MAX_GAP_H * 3600),
+                  key=lambda c: abs((c[0] - t).total_seconds()))
+    return good or None
+
+
 def find_aia(wave: int, t: datetime):
-    """The synoptic archive when it has the day, else the near-real-time one."""
+    """The synoptic archive when it has the day, else the near-real-time one;
+    LMSAL Sun Today when JSOC does not answer."""
+    if not jsoc_up():
+        return find_lmsal(f"f{wave:04d}.fits", t)
     out = []
     for dh in (-1, 0, 1):
         h = t + timedelta(hours=dh)
@@ -307,6 +364,8 @@ def find_eui(wave: int, t: datetime):
 
 
 def find_hmi(t: datetime):
+    if not jsoc_up():
+        return find_lmsal("fblos.fits", t)
     out = []
     for dd in (-1, 0, 1):
         d = t + timedelta(days=dd)
@@ -355,11 +414,24 @@ def finders(t: datetime):
 
 
 # ------------------------------------------------------------------ rendering
-def north_up(m):
+def north_up(m, crop_rs: float | None = None):
     """Resampled to at most SIZE px and rotated solar north up; returns the
-    map and the pixel (x, y) of Sun centre."""
+    map and the pixel (x, y) of Sun centre. With crop_rs, the field is first
+    cut to that many solar radii around the Sun at full resolution, so a wide
+    field where the Sun is small (Solar Orbiter's FSI and PHI) keeps its
+    detail instead of being shrunk whole and then cut."""
     import astropy.units as u
     from astropy.coordinates import SkyCoord
+    if crop_rs:
+        if np.abs(m.rotation_matrix - np.eye(2)).max() > 1e-4:
+            m = m.rotate(order=1, missing=np.nan)
+        c = SkyCoord(0 * u.arcsec, 0 * u.arcsec, frame=m.coordinate_frame)
+        x, y = (float(v) for v in m.wcs.world_to_pixel(c))
+        r_rs = float((m.dsun / m.rsun_meters).decompose())
+        half = int(np.degrees(np.arctan(crop_rs / r_rs)) * 3600 / float(m.scale.axis1.to_value("arcsec / pix")))
+        ny, nx = m.data.shape
+        m = m.submap([max(0, int(x) - half), max(0, int(y) - half)] * u.pix,
+                     top_right=[min(nx - 1, int(x) + half), min(ny - 1, int(y) + half)] * u.pix)
     n = max(m.data.shape)
     if n > SIZE:
         f = SIZE / n
@@ -460,15 +532,9 @@ def process(pid: str, path: Path, dest: Path, day: date | None = None) -> dict:
         exp = m.exposure_time.to_value("s") if kind != "magnetogram" and m.exposure_time is not None and m.exposure_time.to_value("s") > 0 else 1.0
         m = sunpy.map.Map(m.data.astype(float) / exp, m.meta)
     stretch = getattr(m.plot_settings.get("norm"), "stretch", None)     # SunPy's stretch, where the instrument has one
-    m, cx, cy = north_up(m)
+    m, cx, cy = north_up(m, CROP.get(pid))    # a wide field where the Sun would be small: the inner part
     o = observer(m)
     scale = float(m.scale.axis1.to_value("arcsec / pix"))
-    if pid in CROP:                      # a wide field where the Sun would be small: keep the inner part
-        half = int(np.degrees(np.arctan(CROP[pid] / o["r_rs"])) * 3600 / scale)
-        x0, y0 = max(0, int(cx) - half), max(0, int(cy) - half)
-        import astropy.units as u
-        m = m.submap([x0, y0] * u.pix, top_right=[min(m.data.shape[1] - 1, int(cx) + half), min(m.data.shape[0] - 1, int(cy) + half)] * u.pix)
-        cx, cy = cx - x0, cy - y0
     rr = radius_map(m.data.shape, cx, cy, scale, o["r_rs"])
     fov = FOV.get(pid, (0, 1e9))
     mask = ~np.isfinite(m.data) | (rr < fov[0]) | (rr > fov[1]) | ((rr > 0.998) if kind == "magnetogram" else False)
@@ -555,7 +621,7 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
             for tt, url in hit if isinstance(hit, list) else [hit]:       # nearest first; the next if one fails
                 if not force and pid in panels and panels[pid].get("source") == url:
                     break
-                f = Path(tmp) / url.rsplit("/", 1)[1]
+                f = Path(tmp) / url.split("#")[0].rsplit("/", 1)[1]
                 try:
                     f.write_bytes(get(url, timeout=300))
                     p = process(pid, f, dest, t.date())
@@ -571,12 +637,15 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
             if pid in incomplete:
                 incomplete.remove(pid)
             p["source"] = url
+            if url.startswith(LMSAL):
+                p["credit"] = LMSAL_CREDIT
             (dest / f"{pid}.wow.webp").unlink(missing_ok=True)       # the older name of the enhanced image
             panels[pid] = p
             print(f"  {pid}: {p['t_obs']}  ({(tt - t).total_seconds() / 3600:+.1f} h)")
     order = list(PANELS)
     (dest / "index.json").write_text(json.dumps(dict(
-        date=day, map_time=t.isoformat().replace("+00:00", "Z"), cr=meta.get("carrington_rotation"), credits=CREDITS,
+        date=day, map_time=t.isoformat().replace("+00:00", "Z"), cr=meta.get("carrington_rotation"),
+        credits={**CREDITS, **({"SDO": LMSAL_CREDIT} if any(p.get("source", "").startswith(LMSAL) for p in panels.values()) else {})},
         panels=sorted(panels.values(), key=lambda p: order.index(p["id"])),
         incomplete=[q for q in incomplete if q not in panels]), indent=1))
     write_index()

@@ -12,13 +12,15 @@ Solar images for [HelioField](https://sr-dash.github.io/heliofield/)'s [Observat
 
 | Panel | Source | Standard | Enhanced |
 |---|---|---|---|
-| SDO/AIA 94, 131, 171, 193, 211, 304, 335, 1600 Å | JSOC synoptic 1k (near-real-time, then science) | SunPy stretch | WOW |
-| SDO/HMI magnetogram | JSOC near-real-time, 1k | ±200 G | – |
+| SDO/AIA 94, 131, 171, 193, 211, 304, 335, 1600 Å | JSOC synoptic 1k (near-real-time, then science); LMSAL Sun Today when JSOC does not answer | SunPy stretch | WOW |
+| SDO/HMI magnetogram | JSOC near-real-time; LMSAL Sun Today when JSOC does not answer | ±200 G | – |
 | SOHO/LASCO C2, C3 | NASA/GSFC quick-look level 0.5 | ratio to a minimum background | NRGF |
 | STEREO-A EUVI | SECCHI space-weather beacon | SunPy stretch | WOW |
 | Solar Orbiter EUI/FSI 174, 304 Å | Royal Observatory of Belgium, level 2 | SunPy stretch | WOW |
 | Solar Orbiter PHI/FDT magnetogram | ESA SOAR, low-latency | ±200 G | – |
 
+- **LMSAL Sun Today** (`suntoday.lmsal.com/sdomedia/SunInTime/<yyyy>/<mm>/<dd>/f0171.fits`, ..., `fblos.fits`) keeps each day's latest full-resolution AIA image and HMI magnetogram under fixed names. JSOC often refuses the GitHub runners, so each run asks JSOC once and, if it does not answer, takes these instead. The observation time comes from each file's header (read with a range request, about 35 kB), and is kept with the URL in `source` (`...f0171.fits#2026-11-05T23:38:57`). For a past day the frame is that day's last, typically 5 to 8 hours after HelioField's map time.
+- **Solar Orbiter** fields are cut to 1.7 solar radii (EUI) or 1.25 (PHI) around the Sun at full resolution, then reduced to 768 pixels, so the Sun keeps its detail.
 - **WOW**: Wavelets Optimized Whitening (Auchère et al. 2023), from [sunkit-image](https://docs.sunpy.org/projects/sunkit-image/).
 - **NRGF**: normalising radial gradient filter (Morgan et al. 2006), from sunkit-image.
 - **LASCO background**: for each pixel, the minimum over about four weeks of daily median images, as NRL makes the backgrounds for LASCO's real-time images. Each night adds that day's median, from up to 8 frames per camera.
@@ -36,19 +38,35 @@ https://sr-dash.github.io/heliofield-imagery/days/<date>/<id>.std.webp, <id>.enh
 
 Each panel lists `observer` (Carrington `lon`, `lat` in degrees and distance `r_rs` in solar radii), `scale_arcsec` (per pixel), `center` (Sun centre in pixels from the top-left), `fov_rs` for coronagraphs, `t_obs`, `methods`, `source` and `credit`.
 
-Images are 768 pixels on the long side, WebP at quality 75: about 1.5 MB a day for every panel in both renderings. Every day of the last 60 is kept, and before that the first day of each Carrington rotation, as HelioField keeps its daily products. Rotations before the daily products began, back to May 2010, have one day each, the middle day of the rotation at noon, filled by the `Backfill rotations` workflow; their LASCO backgrounds use 5 days of 2-frame medians, and they lack panels a mission did not yet provide (Solar Orbiter from 2021). All of it comes to about 350 MB. The `site` branch is a single commit replaced each night, so the repository stays the size of the images on show.
+Images are 768 pixels on the long side, WebP at quality 75: about 1.5 MB a day for every panel in both renderings. Every day of the last 60 is kept, and before that the first day of each Carrington rotation, as HelioField keeps its daily products. Rotations before the daily products began, back to May 2010, have one day each, the middle day of the rotation at noon, filled by the `Backfill rotations` workflow; their LASCO backgrounds use 5 days of 2-frame medians, and they lack panels a mission did not yet provide (Solar Orbiter from 2021). All of it comes to about 350 MB. The `site` branch is a single commit replaced with each update, so the repository stays the size of the images on show.
 
 ## Running it
 
 ```
 pip install -r requirements.txt
-python build.py --recent 7 --prune     # what the nightly workflow runs (into site/ there)
+python build.py --recent 7 --prune     # what the hourly workflow runs when there is something to do (into site/ there)
 python build.py --date 2026-11-02      # one day
 python build.py --rotations 2014       # one day per Carrington rotation of 2014 without images yet
 python devserve.py                     # serve on http://localhost:8812 with the header the page needs
 ```
 
 `build.py` reads each day's map time from HelioField's published `meta.json` (or a local checkout with `--heliofield ../heliofield/data`).
+
+**Publishing a local build by hand.** Stay on `main`; never check out or commit on the `site` branch, whose files are the served site (`days/`, `index.json`, `movies/`) and nothing else. Build one day into a scratch folder, then replace just that day on `site`:
+
+```
+python build.py --out /tmp/pub --date 2026-11-05        # writes /tmp/pub/days/2026-11-05/
+git fetch origin site
+export GIT_INDEX_FILE=/tmp/site-index; rm -f $GIT_INDEX_FILE
+git read-tree origin/site                               # the site as served
+git rm -r -q --cached --ignore-unmatch days/2026-11-05
+git --work-tree=/tmp/pub add days/2026-11-05            # the new day only
+c=$(echo "Images through 2026-11-05" | git commit-tree $(git write-tree))
+git push --force origin "${c}:refs/heads/site"
+unset GIT_INDEX_FILE
+```
+
+A day that is new (not yet in `index.json`) also needs `index.json`: add the date there, or let the next workflow run rebuild the index.
 
 ## Movies
 

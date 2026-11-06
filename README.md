@@ -70,19 +70,7 @@ A day that is new (not yet in `index.json`) also needs `index.json`: add the dat
 
 ## Movies
 
-[sr-dash.github.io/heliofield-imagery/movies/](https://sr-dash.github.io/heliofield-imagery/movies/) has movies of the Sun since May 2010, one frame per Carrington rotation (the stored day nearest the rotation's middle), at 6 frames a second. They are free to use, for outreach and teaching too, with the credit given there.
-
-- One movie per panel, 768 × 816: AIA 94, 131, 171, 193, 211, 304, 335 and 1600 Å, the HMI magnetogram and STEREO-A EUVI 195 Å (other beacon channels are left out, so its colour holds).
-- Every panel on one 1920 × 1080 canvas, with the monthly sunspot number (WDC-SILSO) along the bottom and the frame's place in the cycle marked.
-- Each with and without HelioField's PFSS field lines from HMI rotation maps, projected from each spacecraft's position. The lines are drawn by the Observations page itself (`observations.html?frames=1`) in a headless Chrome, so they match the page.
-- All in the standard rendering, H.264 MP4, with a poster image each and `movies.json` listing them.
-
-```
-pip install playwright                 # uses an installed Chrome, else `playwright install chromium`
-python movies.py --work work --out site/movies
-```
-
-`data/SN_m_tot_V2.0.csv` is a copy of WDC-SILSO's monthly sunspot numbers, used when SILSO is out of reach. `work/` keeps the rendered frames, so a later run only renders the new rotations. The `Movies` workflow remakes them on the 5th of each month when a new rotation has been added (`--if-new`), rendering every frame afresh, and replaces `movies/` on the `site` branch; run it by hand with "force" to remake them anyway.
+The movies made from these images, one frame per Carrington rotation since 2010 with and without HelioField's field lines, are now in their own repository, [sr-dash/heliofield-movies](https://github.com/sr-dash/heliofield-movies), and served at [sr-dash.github.io/heliofield-movies](https://sr-dash.github.io/heliofield-movies/), so their 270 MB is not redeployed with every day of images.
 
 ## Citing
 

@@ -1,0 +1,413 @@
+{
+ "date": "2011-08-12",
+ "map_time": "2011-08-12T12:00:00Z",
+ "cr": 2113,
+ "credits": {
+  "SDO": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+  "SOHO": "SOHO/LASCO, a project of international cooperation between ESA and NASA (NRL, NASA/GSFC)",
+  "STEREO": "STEREO/SECCHI, NASA (space-weather beacon data)",
+  "Solar Orbiter": "Solar Orbiter/EUI and PHI, ESA and NASA; EUI data from the EUI consortium at the Royal Observatory of Belgium, PHI data from ESA's Solar Orbiter Archive"
+ },
+ "panels": [
+  {
+   "id": "aia171",
+   "label": "AIA 171 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:00Z",
+   "wavelength": 171.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.3912,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia171.std.webp",
+    "enh": "aia171.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0171.fits"
+  },
+  {
+   "id": "aia193",
+   "label": "AIA 193 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:07Z",
+   "wavelength": 193.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.39,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia193.std.webp",
+    "enh": "aia193.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0193.fits"
+  },
+  {
+   "id": "aia211",
+   "label": "AIA 211 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:00Z",
+   "wavelength": 211.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.3911,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia211.std.webp",
+    "enh": "aia211.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0211.fits"
+  },
+  {
+   "id": "aia304",
+   "label": "AIA 304 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:08Z",
+   "wavelength": 304.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.39,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia304.std.webp",
+    "enh": "aia304.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0304.fits"
+  },
+  {
+   "id": "aia131",
+   "label": "AIA 131 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:09Z",
+   "wavelength": 131.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.3897,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia131.std.webp",
+    "enh": "aia131.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0131.fits"
+  },
+  {
+   "id": "aia94",
+   "label": "AIA 94 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:02Z",
+   "wavelength": 94.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.3909,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia94.std.webp",
+    "enh": "aia94.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0094.fits"
+  },
+  {
+   "id": "aia335",
+   "label": "AIA 335 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T12:00:03Z",
+   "wavelength": 335.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.3907,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia335.std.webp",
+    "enh": "aia335.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_0335.fits"
+  },
+  {
+   "id": "aia1600",
+   "label": "AIA 1600 \u00c5",
+   "observatory": "SDO",
+   "instrument": "AIA",
+   "kind": "disk",
+   "t_obs": "2011-08-12T11:59:53Z",
+   "wavelength": 1600.0,
+   "width": 768,
+   "height": 768,
+   "scale_arcsec": 3.2,
+   "center": [
+    383.5,
+    383.5
+   ],
+   "observer": {
+    "lon": 184.3923,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "aia1600.std.webp",
+    "enh": "aia1600.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": null,
+   "source": "https://jsoc1.stanford.edu/data/aia/synoptic/2011/08/12/H1200/AIA20110812_1200_1600.fits"
+  },
+  {
+   "id": "lasco_c2",
+   "label": "LASCO C2",
+   "observatory": "SOHO",
+   "instrument": "LASCO",
+   "kind": "coronagraph",
+   "t_obs": "2011-08-12T11:48:07Z",
+   "wavelength": null,
+   "width": 818,
+   "height": 818,
+   "scale_arcsec": 15.86667,
+   "center": [
+    407.77,
+    412.31
+   ],
+   "observer": {
+    "lon": 183.9311,
+    "lat": 6.4612,
+    "r_rs": 217.922
+   },
+   "fov_rs": [
+    2.2,
+    6.0
+   ],
+   "files": {
+    "std": "lasco_c2.std.webp",
+    "enh": "lasco_c2.enh.webp"
+   },
+   "methods": {
+    "std": "ratio to a 5-day minimum background",
+    "enh": "NRGF"
+   },
+   "credit": "SOHO/LASCO, a project of international cooperation between ESA and NASA (NRL, NASA/GSFC)",
+   "b_sat": null,
+   "source": "https://umbra.nascom.nasa.gov/pub/lasco_level05/110812/c2/22383120.fts"
+  },
+  {
+   "id": "lasco_c3",
+   "label": "LASCO C3",
+   "observatory": "SOHO",
+   "instrument": "LASCO",
+   "kind": "coronagraph",
+   "t_obs": "2011-08-12T11:42:06Z",
+   "wavelength": null,
+   "width": 808,
+   "height": 808,
+   "scale_arcsec": 74.66667,
+   "center": [
+    407.7,
+    387.51
+   ],
+   "observer": {
+    "lon": 183.9904,
+    "lat": 6.4612,
+    "r_rs": 217.922
+   },
+   "fov_rs": [
+    3.7,
+    30.0
+   ],
+   "files": {
+    "std": "lasco_c3.std.webp",
+    "enh": "lasco_c3.enh.webp"
+   },
+   "methods": {
+    "std": "ratio to a 5-day minimum background",
+    "enh": "NRGF"
+   },
+   "credit": "SOHO/LASCO, a project of international cooperation between ESA and NASA (NRL, NASA/GSFC)",
+   "b_sat": null,
+   "source": "https://umbra.nascom.nasa.gov/pub/lasco_level05/110812/c3/32269518.fts"
+  },
+  {
+   "id": "euvi_a",
+   "label": "STEREO-A EUVI",
+   "observatory": "STEREO",
+   "instrument": "SECCHI/EUVI",
+   "kind": "disk",
+   "t_obs": "2011-08-12T11:55:31Z",
+   "wavelength": 195.0,
+   "width": 570,
+   "height": 570,
+   "scale_arcsec": 6.3511,
+   "center": [
+    280.95,
+    308.85
+   ],
+   "observer": {
+    "lon": 285.6306,
+    "lat": 1.8749,
+    "r_rs": 207.259
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "euvi_a.std.webp",
+    "enh": "euvi_a.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "STEREO/SECCHI, NASA (space-weather beacon data)",
+   "b_sat": null,
+   "source": "https://stereo-ssc.nascom.nasa.gov/data/beacon/ahead/secchi/img/euvi/20110812/20110812_115530_n7euA.fts"
+  },
+  {
+   "id": "hmi",
+   "label": "HMI magnetogram",
+   "observatory": "SDO",
+   "instrument": "HMI",
+   "kind": "magnetogram",
+   "t_obs": "2011-08-12T11:58:25Z",
+   "wavelength": 6173.0,
+   "width": 770,
+   "height": 770,
+   "scale_arcsec": 2.68976,
+   "center": [
+    384.41,
+    384.53
+   ],
+   "observer": {
+    "lon": 184.4065,
+    "lat": 6.4803,
+    "r_rs": 217.925
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "hmi.std.webp"
+   },
+   "methods": {
+    "std": "\u00b1200 G"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": 200.0,
+   "source": "https://jsoc1.stanford.edu/data/hmi/fits/2011/08/12/hmi.M_720s.20110812_120000_TAI.fits"
+  }
+ ]
+}

@@ -1,0 +1,149 @@
+{
+ "date": "2010-05-06",
+ "map_time": "2010-05-06T12:00:00Z",
+ "cr": 2096,
+ "credits": {
+  "SDO": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+  "SOHO": "SOHO/LASCO, a project of international cooperation between ESA and NASA (NRL, NASA/GSFC)",
+  "STEREO": "STEREO/SECCHI, NASA (space-weather beacon data)",
+  "Solar Orbiter": "Solar Orbiter/EUI and PHI, ESA and NASA; EUI data from the EUI consortium at the Royal Observatory of Belgium, PHI data from ESA's Solar Orbiter Archive"
+ },
+ "panels": [
+  {
+   "id": "lasco_c2",
+   "label": "LASCO C2",
+   "observatory": "SOHO",
+   "instrument": "LASCO",
+   "kind": "coronagraph",
+   "t_obs": "2010-05-06T11:54:05Z",
+   "wavelength": null,
+   "width": 770,
+   "height": 770,
+   "scale_arcsec": 15.86667,
+   "center": [
+    384.4,
+    379.09
+   ],
+   "observer": {
+    "lon": 178.0567,
+    "lat": -3.676,
+    "r_rs": 216.902
+   },
+   "fov_rs": [
+    2.2,
+    6.0
+   ],
+   "files": {
+    "std": "lasco_c2.std.webp",
+    "enh": "lasco_c2.enh.webp"
+   },
+   "methods": {
+    "std": "ratio to a 5-day minimum background",
+    "enh": "NRGF"
+   },
+   "credit": "SOHO/LASCO, a project of international cooperation between ESA and NASA (NRL, NASA/GSFC)",
+   "b_sat": null,
+   "source": "https://umbra.nascom.nasa.gov/pub/lasco_level05/100506/c2/22332399.fts"
+  },
+  {
+   "id": "lasco_c3",
+   "label": "LASCO C3",
+   "observatory": "SOHO",
+   "instrument": "LASCO",
+   "kind": "coronagraph",
+   "t_obs": "2010-05-06T11:42:05Z",
+   "wavelength": null,
+   "width": 770,
+   "height": 770,
+   "scale_arcsec": 74.66667,
+   "center": [
+    380.41,
+    399.6
+   ],
+   "observer": {
+    "lon": 178.175,
+    "lat": -3.676,
+    "r_rs": 216.902
+   },
+   "fov_rs": [
+    3.7,
+    30.0
+   ],
+   "files": {
+    "std": "lasco_c3.std.webp",
+    "enh": "lasco_c3.enh.webp"
+   },
+   "methods": {
+    "std": "ratio to a 5-day minimum background",
+    "enh": "NRGF"
+   },
+   "credit": "SOHO/LASCO, a project of international cooperation between ESA and NASA (NRL, NASA/GSFC)",
+   "b_sat": null,
+   "source": "https://umbra.nascom.nasa.gov/pub/lasco_level05/100506/c3/32225598.fts"
+  },
+  {
+   "id": "euvi_a",
+   "label": "STEREO-A EUVI",
+   "observatory": "STEREO",
+   "instrument": "SECCHI/EUVI",
+   "kind": "disk",
+   "t_obs": "2010-05-06T12:05:30Z",
+   "wavelength": 195.0,
+   "width": 562,
+   "height": 562,
+   "scale_arcsec": 6.3511,
+   "center": [
+    282.32,
+    304.86
+   ],
+   "observer": {
+    "lon": 248.0269,
+    "lat": 4.7768,
+    "r_rs": 205.667
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "euvi_a.std.webp",
+    "enh": "euvi_a.enh.webp"
+   },
+   "methods": {
+    "std": "SunPy stretch",
+    "enh": "WOW"
+   },
+   "credit": "STEREO/SECCHI, NASA (space-weather beacon data)",
+   "b_sat": null,
+   "source": "https://stereo-ssc.nascom.nasa.gov/data/beacon/ahead/secchi/img/euvi/20100506/20100506_120530_n7euA.fts"
+  },
+  {
+   "id": "hmi",
+   "label": "HMI magnetogram",
+   "observatory": "SDO",
+   "instrument": "HMI",
+   "kind": "magnetogram",
+   "t_obs": "2010-05-06T11:58:22Z",
+   "wavelength": 6173.0,
+   "width": 770,
+   "height": 770,
+   "scale_arcsec": 2.68988,
+   "center": [
+    384.56,
+    384.46
+   ],
+   "observer": {
+    "lon": 178.5886,
+    "lat": -3.6094,
+    "r_rs": 216.929
+   },
+   "fov_rs": null,
+   "files": {
+    "std": "hmi.std.webp"
+   },
+   "methods": {
+    "std": "\u00b1200 G"
+   },
+   "credit": "Courtesy of NASA/SDO and the AIA science team (JSOC)",
+   "b_sat": 200.0,
+   "source": "https://jsoc1.stanford.edu/data/hmi/fits/2010/05/06/hmi.M_720s.20100506_120000_TAI.fits"
+  }
+ ]
+}

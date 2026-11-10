@@ -44,7 +44,7 @@ Images are 768 pixels on the long side, WebP at quality 75: about 1.5 MB a day f
 
 ```
 pip install -r requirements.txt
-python build.py --recent 7 --prune     # what the hourly workflow runs when there is something to do (into site/ there)
+python build.py --recent 7 --prune     # what the workflow runs after each HelioField attempt, when there is something to do (into site/ there)
 python build.py --date 2026-11-02      # one day
 python build.py --rotations 2014       # one day per Carrington rotation of 2014 without images yet
 python devserve.py                     # serve on http://localhost:8812 with the header the page needs

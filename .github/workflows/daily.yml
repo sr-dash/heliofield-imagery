@@ -5,16 +5,15 @@
 # rotation before that) instead of growing with history.
 name: Daily images
 
-# Every hour, a check that takes seconds: a new HelioField product, a day
-# whose map was rebuilt, or a day with panels missing because an archive did
-# not answer (`incomplete` in its index). Only then are the images built, so a
-# new day's images follow its field within about an hour.
-#
-# Fixed runs follow each of HelioField's daily attempts (18:40, 20:40 and
-# 23:40 UTC, 02:40 as a backstop), because GitHub skips many hourly runs.
+# A check that takes seconds runs after each of HelioField's daily attempts
+# (18:40, 20:40 and 23:40 UTC, 02:40 as a backstop): a new product, a day whose
+# map was rebuilt, a day with panels missing because an archive did not
+# answer (`incomplete` in its index), or a live site behind its branch. Only
+# then are the images built or redeployed, so a new day's images follow its
+# field within about 15 minutes. (An hourly schedule was tried; GitHub ran it
+# only every few hours.)
 on:
   schedule:
-    - cron: "25 * * * *"
     - cron: "55 18 * * *"
     - cron: "55 20 * * *"
     - cron: "55 23 * * *"

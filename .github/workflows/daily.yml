@@ -9,9 +9,16 @@ name: Daily images
 # whose map was rebuilt, or a day with panels missing because an archive did
 # not answer (`incomplete` in its index). Only then are the images built, so a
 # new day's images follow its field within about an hour.
+#
+# Fixed runs follow each of HelioField's daily attempts (18:40, 20:40 and
+# 23:40 UTC, 02:40 as a backstop), because GitHub skips many hourly runs.
 on:
   schedule:
     - cron: "25 * * * *"
+    - cron: "55 18 * * *"
+    - cron: "55 20 * * *"
+    - cron: "55 23 * * *"
+    - cron: "55 2 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -34,33 +41,44 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     outputs:
-      published: ${{ steps.publish.outputs.published }}
+      published: ${{ steps.publish.outputs.published == 'true' || steps.check.outputs.redeploy == 'true' }}
     steps:
+      # What to build is judged against the `site` branch, which this job
+      # writes; whether to redeploy, by comparing the live index with it, so
+      # a deployment that reported success but did not take is put right.
       - name: Anything to do?
         id: check
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, urllib.request
-          get = lambda u: json.load(urllib.request.urlopen(u + "?t=1", timeout=60))
+          import json, sys, time, urllib.request
+          def get(u):
+              return json.load(urllib.request.urlopen(f"{u}?t={int(time.time())}", timeout=60))
           field = "https://sr-dash.github.io/heliofield/data/"
-          imgs = "https://sr-dash.github.io/heliofield-imagery/"
-          have = set(get(imgs + "index.json")["dates"])
+          branch = "https://raw.githubusercontent.com/sr-dash/heliofield-imagery/site/"
+          live = "https://sr-dash.github.io/heliofield-imagery/"
+          idx = get(branch + "index.json")
+          have = set(idx["dates"])
           todo = []
           for d in get(field + "index.json")["dates"][-7:]:
               if d not in have:
                   todo.append(d); continue
-              day = get(imgs + f"days/{d}/index.json")
+              day = get(branch + f"days/{d}/index.json")
               if day.get("incomplete") or day["map_time"][:16] != get(field + f"{d}/meta.json")["obstime"][:16]:
                   todo.append(d)
+          try:
+              stale = get(live + "index.json").get("updated") != idx.get("updated")
+          except Exception:
+              stale = True
           print("go=" + ("true" if todo else "false"))
-          import sys; print("to do: " + (", ".join(todo) or "nothing"), file=sys.stderr)
+          print("redeploy=" + ("true" if stale else "false"))
+          print("to do: " + (", ".join(todo) or "nothing") + ("; the live site is behind the branch" if stale else ""), file=sys.stderr)
           PY
 
       - uses: actions/checkout@v7
-        if: steps.check.outputs.go == 'true' || inputs.date != ''
+        if: steps.check.outputs.go == 'true' || steps.check.outputs.redeploy == 'true' || inputs.date != ''
 
       - name: The images on show now
-        if: steps.check.outputs.go == 'true' || inputs.date != ''
+        if: steps.check.outputs.go == 'true' || steps.check.outputs.redeploy == 'true' || inputs.date != ''
         run: |
           mkdir -p site
           if git fetch --depth 1 origin site:refs/remotes/origin/site; then git archive origin/site | tar -x -C site; fi
@@ -113,7 +131,7 @@ jobs:
       # its own timeout, rather than by GitHub's branch deployment, whose
       # fixed 10 minutes the few thousand files sometimes overran.
       - uses: actions/upload-pages-artifact@v5
-        if: steps.publish.outputs.published == 'true'
+        if: steps.publish.outputs.published == 'true' || steps.check.outputs.redeploy == 'true'
         with:
           path: site
 

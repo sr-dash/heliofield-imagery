@@ -73,6 +73,11 @@ A day that is new (not yet in `index.json`) also needs `index.json`: add the dat
 
 The movies made from these images, one frame per Carrington rotation since 2010 with and without HelioField's field lines, are now in their own repository, [sr-dash/heliofield-movies](https://github.com/sr-dash/heliofield-movies), and served at [sr-dash.github.io/heliofield-movies](https://sr-dash.github.io/heliofield-movies/), so their 270 MB is not redeployed with every day of images.
 
+## Branches
+
+- `main`: the code and workflows.
+- `site`: the published images and index (the last 60 days), as served. It is a single commit with no history, replaced whole by the workflow on each update, so the repository stays the size of what is on show instead of keeping every old file. It shares no history with `main` (GitHub calls them diverged) and is never merged into it; ignore any "Compare & pull request" banner for it.
+
 ## Citing
 
 If you use these images or the pipeline, please cite it, together with [HelioField](https://doi.org/10.5281/zenodo.23487231), and credit the missions below:

@@ -58,6 +58,10 @@ UA = {"User-Agent": "heliofield-imagery/0.1 (+https://github.com/sr-dash/heliofi
 SIZE = 768                  # longest side of the written images [px]
 QUALITY = 75                # WebP quality: about 1.7 MB a day for every panel in both renderings
 KEEP_DAYS = 60              # every day this recent is kept; older ones, one per Carrington rotation
+# Older days, one per Carrington rotation, live in a site of their own, so the
+# daily deploy carries only the recent days. Its monthly run copies days that
+# have aged past KEEP_DAYS from this site; this site then lets them go.
+ARCHIVE = "https://sr-dash.github.io/heliofield-imagery-archive/"
 MAX_GAP_H = 18              # a frame further than this from the map time is not used
 AIA = "https://jsoc1.stanford.edu/data/aia/synoptic"
 # LMSAL's Sun Today keeps, for each day, that day's latest full-resolution
@@ -651,30 +655,55 @@ def build(day: str, local: Path | None, only: list[str] | None = None, force: bo
     write_index()
 
 
+_archive: list = []
+
+
+def archive_index() -> dict | None:
+    """The archive's index ({"dates": [...], "cr": {date: rotation}}), read
+    once per run; None if it cannot be read, so nothing is let go blindly."""
+    if not _archive:
+        try:
+            _archive.append(json.loads(get(ARCHIVE + "index.json?t=" + str(int(time.time())), timeout=60)))
+        except Exception as e:
+            print(f"  archive index: {e}")
+            _archive.append(None)
+    return _archive[0]
+
+
 def write_index():
+    """The list of every day there are images for: the recent ones here, and
+    (`archived`) the older ones served from the archive site."""
     days = sorted(p.name for p in DAYS.iterdir() if (p / "index.json").exists()) if DAYS.exists() else []
     path = OUT / "index.json"
+    old = json.loads(path.read_text()) if path.exists() else {}
+    arc = archive_index()
+    archived = sorted(set(arc["dates"]) - set(days)) if arc else old.get("archived", [])
+    dates = sorted(set(days) | set(archived))
     # Rewritten only when the list of days changes, so a night with nothing
     # new publishes nothing.
-    if path.exists() and json.loads(path.read_text()).get("dates") == days:
+    if old.get("dates") == dates and old.get("archived", []) == archived:
         return
-    path.write_text(json.dumps(dict(dates=days, updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    path.write_text(json.dumps(dict(dates=dates, archived=archived, archive=ARCHIVE,
+                                    updated=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                                     credits=CREDITS), indent=1))
 
 
 def prune(keep_days: int = KEEP_DAYS):
-    """Keep every day of the last keep_days, and before that the first day of
-    each Carrington rotation, as HelioField keeps its daily products."""
+    """Keep every day of the last keep_days. Before that, one day per
+    Carrington rotation is kept, here until the archive has copied it and
+    there after: a day the archive holds, or of a rotation it holds, goes."""
     days = sorted(p.name for p in DAYS.iterdir() if (p / "index.json").exists())
     if not days:
         return
     cutoff = (date.fromisoformat(days[-1]) - timedelta(days=keep_days)).isoformat()
-    seen = set()
+    arc = archive_index() or {"dates": [], "cr": {}}
+    held = set(arc["dates"])
+    seen = set(arc.get("cr", {}).values())
     for d in days:
         if d >= cutoff:
             continue
         cr = json.loads((DAYS / d / "index.json").read_text()).get("cr")
-        if cr is None or cr in seen:
+        if d in held or cr is None or cr in seen:
             shutil.rmtree(DAYS / d)
         seen.add(cr)
     write_index()
